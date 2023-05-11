@@ -4,8 +4,10 @@ import json
 
 app = Flask(__name__)
 
-con = pymysql.connect(host='localhost', user='root', password='a980911', db='react', charset='utf8',
-                          autocommit=True, cursorclass=pymysql.cursors.DictCursor)
+HOST = 'localhost'
+USER = 'root'
+PASSWORD = 'a980911'
+DB = 'react'
 
 @app.route('/')
 def home():
@@ -14,7 +16,7 @@ def home():
 @app.route('/api/get', methods=["GET", "POST"])
 def DB_get():
     # DB 연결
-    conn = pymysql.connect(host='localhost', user='root', password='a980911', db='react', charset='utf8',
+    conn = pymysql.connect(host=HOST, user=USER, password=PASSWORD, db=DB, charset='utf8',
                            autocommit=True, cursorclass=pymysql.cursors.DictCursor)
     # SQL 쿼리 작성
     sql = 'SELECT * FROM table1'
@@ -45,8 +47,8 @@ def DB_insert():
     sql = "INSERT INTO table1 (title, content, writer, ndate) VALUES (%s, %s, %s, %s)"
     val = (title, content, writer, ndate)
     # DB 연결
-    conn = pymysql.connect(host='localhost', user='root', password='a980911', db='react', charset='utf8',
-                          autocommit=True, cursorclass=pymysql.cursors.DictCursor)
+    conn = pymysql.connect(host=HOST, user=USER, password=PASSWORD, db=DB, charset='utf8',
+                           autocommit=True, cursorclass=pymysql.cursors.DictCursor)
     # 데이터베이스에 insert
     try:
         with conn.cursor() as cursor:
@@ -62,6 +64,61 @@ def DB_insert():
     # 결과 반환
     return jsonify(result)
 
+@app.route('/api/delete', methods=["GET", "POST"])
+def DB_delete():
+    # 요청 받은 JSON 데이터 파싱
+    data = request.get_json()
+    idx = data['idx']
+    print(idx)
+    # SQL 쿼리 작성
+    sql = "DELETE FROM table1 WHERE idx = %s"
+    val = (idx, )
+    # DB 연결
+    conn = pymysql.connect(host=HOST, user=USER, password=PASSWORD, db=DB, charset='utf8',
+                           autocommit=True, cursorclass=pymysql.cursors.DictCursor)
+    # 데이터베이스에서 일치하는 행 삭제
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(sql, val)
+            conn.commit()
+            result = {"status": "success", "message": "Data deleted"}
+    except Exception as e:
+        conn.rollback()
+        result = {"status": "error", "message": str(e)}
+    finally:
+        conn.close()
+    # 결과 반환
+    return jsonify(result)
+
+@app.route('/api/update', methods=["POST"])
+def DB_update():
+    # 요청받은 JSON 데이터 파싱
+    data = request.get_json()
+    idx = data['idx']
+    title = data['title']
+    content = data['content']
+    writer = data['writer']
+    ndate = data['ndate']
+    # SQL 쿼리 작성
+    sql = "UPDATE table1 SET title = %s, content = %s, writer = %s, ndate = %s WHERE idx = %s"
+    val = (title, content, writer, ndate, idx)
+    # DB 연결
+    conn = pymysql.connect(host=HOST, user=USER, password=PASSWORD, db=DB, charset='utf8',
+                           autocommit=True, cursorclass=pymysql.cursors.DictCursor)
+    # 데이터베이스에 update
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(sql, val)
+            conn.commit()
+            result = {"status": "success", "message": "Data updated"}
+    except Exception as e:
+        conn.rollback()
+        result = {"status": "error", "message": str(e)}
+    finally:
+        conn.close()
+
+    # 결과 반환
+    return jsonify(result)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=4000, debug=True)
